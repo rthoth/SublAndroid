@@ -1,0 +1,10 @@
+[
+{
+	"id":"sublandroid",
+	"caption":"SublAndroid",
+	"mnemonic":"A",
+	"children": [
+		{"caption":"Caption", "command":"subl_android", "args":{"tasks":[]}}
+	]
+}
+]
