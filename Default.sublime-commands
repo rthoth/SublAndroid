@@ -1,0 +1,5 @@
+[
+	{
+		"caption": "SublAndroid: Start", "command": "subl_android", "args": {"action": "start"}
+	}
+]
