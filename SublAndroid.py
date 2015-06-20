@@ -5,6 +5,16 @@ from threading import Thread
 from .gradle import Gradle
 from .project import Project, has_project, search_project_folders
 
+def withGradle(func):
+    def funcInvoke(self, *args):
+        if self._gradle is None:
+            self._gradle = self.gradle();
+
+        if self._gradle is not None:
+            return func(self, *args)
+
+    return funcInvoke
+
 
 class SublAndroidCommand(sublime_plugin.WindowCommand):
     
@@ -19,17 +29,13 @@ class SublAndroidCommand(sublime_plugin.WindowCommand):
     def is_enabled(self):
         return has_project(self.window)
 
+    @withGradle
     def start(self):
-        if self.gradle():
-            self._gradle.start()
+        self._gradle.start()
 
     def gradle(self):
-        if self._gradle is None:
-            project = self._project()
-            if project is not None:
-                self._gradle = Gradle(project, self.window)
-
-        return self._gradle
+        project = self._project()
+        return Gradle(project, self.window) if project else None
 
     def _project(self):
         folders = search_project_folders(self.window)
