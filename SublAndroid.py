@@ -7,7 +7,13 @@ from .project import Project, has_project, search_project_folders
 
 def withGradle(func):
     def funcInvoke(self, *args):
-        if self.gradle is None:
+        gradle = None
+        try:
+            gradle = self.gradle
+        except:
+            pass
+
+        if not gradle:
             self.gradle = self._gradle();
 
         if self.gradle is not None:
@@ -21,7 +27,6 @@ class SublAndroidCommand(sublime_plugin.WindowCommand):
     def __init__(self, *args):
         super(SublAndroidCommand, self).__init__(*args)
         SublAndroidListener
-        self.gradle = None
 
         SublAndroidListener.instance(self.window, self)
     def run(self, action, tasks = []):
