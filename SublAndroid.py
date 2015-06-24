@@ -1,7 +1,6 @@
 import sublime
 import sublime_plugin
 
-from threading import Thread
 from .gradle import Gradle
 from .project import Project, has_project, search_project_folders
 
