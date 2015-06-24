@@ -1,10 +1,15 @@
-import glob, os, sublime
+from os.path import join, exists
+
+import sublime
+
+_BUILD_DOT_GRADLE = 'build.gradle'
+_ANDROID_MANIFEST_DOT_XML = join('src', 'main', 'AndroidManifest.xml')
 
 def _is_project(folder):
-    return True if glob.glob(os.path.join(folder, 'build.gradle')) else False
+    return exists(join(folder, _BUILD_DOT_GRADLE)) and exists(join(folder, _ANDROID_MANIFEST_DOT_XML))
 
-def has_project(window):
-    for folder in window.folders():
+def has_project(folders):
+    for folder in folders:
         if _is_project(folder):
             return True
     return False
@@ -17,5 +22,5 @@ class Project:
         self._folder = folder
 
     def path(self, path):
-        path = os.path.join(self._folder, path)
-        return path if os.path.exists(path) else None
+        path = join(self._folder, path)
+        return path if exists(path) else None

@@ -7,13 +7,12 @@ from .project import Project, has_project, search_project_folders
 
 def withGradle(func):
     def funcInvoke(self, *args):
-        gradle = None
         try:
             gradle = self.gradle
-        except:
-            pass
+        except AttributeError:
+            gradle = self.gradle = None
 
-        if not gradle:
+        if gradle is None:
             self.gradle = self._gradle();
 
         if self.gradle is not None:
@@ -34,7 +33,7 @@ class SublAndroidCommand(sublime_plugin.WindowCommand):
             self.start()
 
     def is_enabled(self):
-        return has_project(self.window)
+        return has_project(self.window.folders())
 
     @withGradle
     def start(self):
@@ -72,9 +71,6 @@ class SublAndroidListener(sublime_plugin.EventListener):
         else:
             instances[id] = subl_android
             return instances[id]
-            
-
-
 
     def on_post_save_async(self, view):
         subl_android = self.instance(view.window())
