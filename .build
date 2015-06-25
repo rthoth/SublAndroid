@@ -1,0 +1,12 @@
+{
+	"automatic_order": true,
+	"iterations": 1,
+	"mods_load_order":
+	[
+		"lib/project.py",
+		"lib/gradle_view.py",
+		"lib/gradle.py",
+		"lib/daemon.py",
+		"SublAndroid.py"
+	]
+}
