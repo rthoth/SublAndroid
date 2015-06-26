@@ -6,6 +6,7 @@
 		"lib/project.py",
 		"lib/gradle_view.py",
 		"lib/gradle.py",
+		"lib/emitter.py",
 		"lib/daemon.py",
 		"SublAndroid.py"
 	]

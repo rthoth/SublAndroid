@@ -4,6 +4,9 @@ import socket
 
 from subprocess import Popen
 from functools import partial
+from threading import Thread
+from .emitter import Emitter
+
 
 daemon_command = os.path.join(os.path.dirname(__file__), '../daemon/bin/sublandroid')
 
@@ -13,13 +16,17 @@ def port():
 
 _NL = ord('\n')
 
+_ATTEMPT_DELAY = 250
+_MAX_ATTEMPTS = 10
 
-class Daemon(object):
+
+class Daemon(Emitter):
     def __init__(self, project_path):
         self._socket = None
         self._port = port()
         self._popen = Popen([daemon_command, project_path, str(self._port), 'debug'])
-        sublime.set_timeout_async(self._try_connect, 1000)
+        self._attempt = 0
+        sublime.set_timeout_async(self._try_connect, _ATTEMPT_DELAY)
 
     def shutdown(self):
         pass
@@ -27,44 +34,56 @@ class Daemon(object):
     def _connect(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.connect(('127.0.0.1', self._port))
-        self._socket_file = self._socket.makefile('r', newline='\n')
+        self.thread = Thread(target=self.wait)
+        self.thread.start()
 
     def _try_connect(self):
+        self._attempt += 1
         if self._popen.returncode is None:
-            self._connect()
+            try:
+                self._connect()
+            except ConnectionRefusedError:
+                if self._attempt <= _MAX_ATTEMPTS:
+                    sublime.set_timeout_async(self._try_connect, _ATTEMPT_DELAY)
         else:
             self._socket = False
-            raise ChildProcessError()
 
     def send(self, message, callback):
         sublime.set_timeout_async(partial(self._send, message, callback))
 
     def _send(self, message, callback):
-        if self._socket is None:
-            sublime.set_timeout_async(partial(self._send, message, callback), 100)
-        elif self._socket:
-            data = sublime.encode_value(message, False).encode()
+        if self._socket:
+            data = (sublime.encode_value(message, False) + '\n').encode()
             limit = len(data)
             total_sent = 0
-            sublime.message_dialog(data.decode())
             while total_sent < limit:
                 sent = self._socket.send(data[total_sent:])
                 if sent == 0:
-                    callback(RuntimeError('Comunication failed'))
+                    callback(RuntimeError('Comunication failed'), None)
                     return
                 else:
                     total_sent += sent
+
             data = b''
             while True:
-                chunk = self._socket.recv(1)
-                sublime.message_dialog(str(chunk))
-                if len(chunk) == 0:
-                    callback(RuntimeError('Comunication failed'))
-
-                if chunk[0] != _NL:
-                    continue
+                chunk = self._socket.recv(1024)
+                if chunk:
+                    if chunk[-1] == _NL:
+                        data += chunk[:-1]
+                        break
+                    else:
+                        data += chunk
                 else:
-                    data += chunk
+                    callback(RuntimeError('Comunication failed'), None)
+                    return
+
             json = data.decode()
+            sublime.message_dialog('Gradle Messagem: ' + json + '.')
             json = sublime.decode_value(json)
             callback(None, json)
+        elif self._socket is None:
+            sublime.set_timeout_async(partial(self._send, message, callback), _ATTEMPT_DELAY)
+
+    def wait(self):
+        self._popen.wait()
+        self.fire('end')
