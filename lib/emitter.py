@@ -2,18 +2,19 @@ class Emitter(object):
 
     listeners = None
 
-    def on(self, evt, func):
+    def on(self, evt, func, once=False):
         if self.listeners is None:
             self.listeners = {}
 
         if evt not in self.listeners:
             self.listeners[evt] = []
 
-        self.listeners[evt].append(func)
+        self.listeners[evt].append(Listener(func, once))
 
     def off(self, evt, func):
         if self.listeners is not None and evt in self.listeners:
             self.listeners[evt].remove(func)
+
             if not self.listeners[evt]:
                 del self.listeners[evt]
                 if not self.listeners:
@@ -22,5 +23,16 @@ class Emitter(object):
     def fire(self, evt, **kwargs):
         if self.listeners is not None and evt in self.listeners:
             listeners = self.listeners.copy()
-            for func in listeners[evt].copy():
-                func(**kwargs)
+            for listener in listeners[evt].copy():
+                if listener.once:
+                    self.off(evt, listener)
+                listener.func(**kwargs)
+
+
+class Listener(object):
+    def __init__(self, func, once):
+        self.func = func
+        self.once = once
+
+    def __eq__(self, other):
+        return self.func == other.func if isinstance(other, Listener) else self.func == other
