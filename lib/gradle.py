@@ -16,12 +16,12 @@ class Gradle(Emitter):
     def __init__(self, resolve_path, window):
         self.gradleView = GradleView(window)
         self._daemon = None
-        self._resolve_path = resolve_path
+        self.resolve_path = resolve_path
 
     @property
     def daemon(self):
         if self._daemon is None:
-            self._daemon = Daemon(self._resolve_path())
+            self._daemon = Daemon(self.resolve_path())
             self._daemon.on('end', self.on_daemon_end)
             self._daemon.on('start_failed', self.on_daemon_failed)
 

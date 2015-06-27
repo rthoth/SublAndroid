@@ -22,46 +22,46 @@ _MAX_ATTEMPTS = 10
 
 class Daemon(Emitter):
     def __init__(self, project_path):
-        self._socket = None
-        self._port = port()
-        self._popen = Popen([daemon_command, project_path, str(self._port), 'debug'])
-        self._attempt = 0
+        self.socket = None
+        self.port = port()
+        self.popen = Popen([daemon_command, project_path, str(self.port), 'debug'])
+        self.attempts = 0
         self._off = False
-        sublime.set_timeout_async(self._try_connect, _ATTEMPT_DELAY)
+        sublime.set_timeout_async(self.try_connect, _ATTEMPT_DELAY)
 
     def shutdown(self):
         self._off = True
-        self._popen.terminate()
+        self.popen.terminate()
 
     def _connect(self):
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.connect(('127.0.0.1', self._port))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect(('127.0.0.1', self.port))
         self.thread = Thread(target=self.wait)
         self.thread.start()
 
-    def _try_connect(self):
-        self._attempt += 1
-        if self._popen.returncode is None:
+    def try_connect(self):
+        self.attempts += 1
+        if self.popen.returncode is None:
             try:
                 self._connect()
             except ConnectionRefusedError:
-                if self._attempt <= _MAX_ATTEMPTS:
-                    sublime.set_timeout_async(self._try_connect, _ATTEMPT_DELAY)
+                if self.attempts <= _MAX_ATTEMPTS:
+                    sublime.set_timeout_async(self.try_connect, _ATTEMPT_DELAY)
                 else:
                     self.fire('start_failed')
         else:
-            self._socket = False
+            self.socket = False
 
     def send(self, message, callback):
         sublime.set_timeout_async(partial(self._send, message, callback))
 
     def _send(self, message, callback):
-        if self._socket:
+        if self.socket:
             data = (sublime.encode_value(message, False) + '\n').encode()
             limit = len(data)
             total_sent = 0
             while total_sent < limit:
-                sent = self._socket.send(data[total_sent:])
+                sent = self.socket.send(data[total_sent:])
                 if sent == 0:
                     callback(RuntimeError('Comunication failed'), None)
                     return
@@ -70,7 +70,7 @@ class Daemon(Emitter):
 
             data = b''
             while True:
-                chunk = self._socket.recv(1024)
+                chunk = self.socket.recv(1024)
                 if chunk:
                     if chunk[-1] == _NL:
                         data += chunk[:-1]
@@ -95,11 +95,11 @@ class Daemon(Emitter):
             else:
                 callback(message)
 
-        elif self._socket is None:
+        elif self.socket is None:
             sublime.set_timeout_async(partial(self._send, message, callback), _ATTEMPT_DELAY)
 
     def wait(self):
-        self._popen.wait()
+        self.popen.wait()
         self.fire('end')
         if not self._off:
             self.fire('crash')
