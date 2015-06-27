@@ -23,11 +23,16 @@ class Gradle(Emitter):
         if self._daemon is None:
             self._daemon = Daemon(self._resolve_path())
             self._daemon.on('end', self.on_daemon_end)
+            self._daemon.on('start_failed', self.on_daemon_failed)
 
         return self._daemon
 
     def shutdown(self):
-        if not self._daemon:
+        if self.gradleView:
+            self.gradleView.info('Bye bye!')
+
+        if self._daemon:
+            self._daemon.off('end', self.on_daemon_end)
             self._daemon.shutdown()
 
     def start(self):
@@ -40,6 +45,12 @@ class Gradle(Emitter):
         self._daemon.off('end', self.on_daemon_end)
         self._daemon = None
         self.fire('end')
+
+    def on_daemon_failed(self):
+        self._daemon.off('end', self.on_daemon_end)
+        self._daemon.off('start_failed', self.on_daemon_failed)
+        self._daemon = None
+        self.fire('failed')
 
     @onlysuccess
     def on_show_tasks(self, tasks):

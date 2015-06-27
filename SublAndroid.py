@@ -35,13 +35,20 @@ class SublAndroid(sublime_plugin.WindowCommand):
         if old_instance:
             old_instance.shutdown()
 
+        self._actions = {
+            "start": self.start,
+            "stop": self.shutdown
+        }
+
     def shutdown(self):
-        if self._gradle is not None:
+        if self._gradle:
+            self._gradle.off('end', self.on_gradle_end)
             self._gradle.shutdown()
+            self._gradle = None
 
     def run(self, action, tasks=[]):
-        if action == 'start':
-            self.start()
+        if action in self._actions:
+            self._actions[action]()
 
     def is_enabled(self):
         return has_project(self.window.folders())
@@ -55,7 +62,8 @@ class SublAndroid(sublime_plugin.WindowCommand):
             folders = search_project_folders(self.window.folders())
             self._folder = realpath(folders[0]) if len(folders) == 1 else None
             self._gradle = Gradle(self.resolve_path, self.window)
-            self._gradle.on('end', self.on_gradle_end)
+            self._gradle.on('end', self.on_gradle_end, True)
+            self._gradle.on('failed', self.on_gradle_failed, True)
 
         return self._gradle
 
@@ -64,8 +72,10 @@ class SublAndroid(sublime_plugin.WindowCommand):
 
     def on_gradle_end(self):
         sublime.error_message('OMG! Gradle is dead!')
-        self._gradle.off('end', self.on_gradle_end)
         self._gradle = None
+
+    def on_gradle_failed(self):
+        self._gradle.off('end', self.on_gradle_end)
 
     @ifgradle
     def on_saved(self, view):

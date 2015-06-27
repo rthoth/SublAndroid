@@ -1,5 +1,5 @@
 [
-	{
-		"caption": "SublAndroid: Start", "command": "subl_android", "args": {"action": "start"}
-	}
+	{"caption": "SublAndroid: Start", "command": "subl_android", "args": {"action": "start"}},
+
+	{"caption": "SublAndroid: Stop", "command": "subl_android", "args": {"action": "stop"}}
 ]
