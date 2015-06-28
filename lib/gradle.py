@@ -1,20 +1,18 @@
 from .gradle_view import GradleView
-from .daemon import Daemon
+from .daemon import Daemon, onlysuccess
 from .emitter import Emitter
+from .java import Java
+from os import path
 
-
-def onlysuccess(method):
-    def _method(self, error, message):
-        if not error:
-            return method(self, message)
-
-    return _method
+SRC_PATH = 'src' + path.sep
+SRC_MAIN_PATH = path.join(SRC_PATH, 'main') + path.sep
+JAVA_EXTENSION = '.java'
 
 
 class Gradle(Emitter):
 
     def __init__(self, resolve_path, window):
-        self.gradleView = GradleView(window)
+        self.gradle_view = GradleView(window)
         self._daemon = None
         self.resolve_path = resolve_path
 
@@ -22,14 +20,15 @@ class Gradle(Emitter):
     def daemon(self):
         if self._daemon is None:
             self._daemon = Daemon(self.resolve_path())
-            self._daemon.on('end', self.on_daemon_end)
-            self._daemon.on('start_failed', self.on_daemon_failed)
+            self.java = Java(self, self._daemon)
+            self._daemon.once('end', self.on_daemon_end)
+            self._daemon.once('start_failed', self.on_daemon_failed)
 
         return self._daemon
 
     def shutdown(self):
-        if self.gradleView:
-            self.gradleView.info('Bye bye!')
+        if self.gradle_view:
+            self.gradle_view.info('Bye bye!')
 
         if self._daemon:
             self._daemon.off('end', self.on_daemon_end)
@@ -39,7 +38,11 @@ class Gradle(Emitter):
         self.daemon.send({"command": "hello"}, self.on_hello)
 
     def process(self, path):
-        self.gradleView.info('User saved %s' % path)
+        self.gradle_view.info('User saved %s' % path)
+
+        if path.startswith(SRC_PATH):
+            if path.endswith(JAVA_EXTENSION):
+                self.java.saved(path)
 
     def on_daemon_end(self):
         self._daemon.off('end', self.on_daemon_end)
@@ -58,11 +61,11 @@ class Gradle(Emitter):
         itens = ['%s: %s' % (task['name'], task['description']
                  if 'description' in task else '') for task in tasks]
 
-        self.gradleView.info('%s\n%s' % (header, '\n'.join(itens)))
+        self.gradle_view.info('%s\n%s' % (header, '\n'.join(itens)))
 
     @onlysuccess
     def on_hello(self, message):
         self.gradleVersion = message['gradleVersion']
         self.gradleMessage = message['message']
-        self.gradleView.info('Gradle %s started and says %s' % (self.gradleVersion, self.gradleMessage))
-        self._daemon.send({'command': 'showTasks'}, self.on_show_tasks)
+        self.gradle_view.info('Gradle %s started and says %s' % (self.gradleVersion, self.gradleMessage))
+        # self._daemon.send({'command': 'showTasks'}, self.on_show_tasks)

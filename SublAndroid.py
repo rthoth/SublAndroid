@@ -1,5 +1,6 @@
 import sublime_plugin
 import sublime
+from .lib import util
 
 from os.path import join, realpath, relpath
 
@@ -62,8 +63,9 @@ class SublAndroid(sublime_plugin.WindowCommand):
             folders = search_project_folders(self.window.folders())
             self.folder = realpath(folders[0]) if len(folders) == 1 else None
             self._gradle = Gradle(self.resolve_path, self.window)
-            self._gradle.on('end', self.on_gradle_end, True)
-            self._gradle.on('failed', self.on_gradle_failed, True)
+            self._gradle.once('end', self.on_gradle_end)
+            self._gradle.once('failed', self.on_gradle_failed)
+            self._gradle.on('java_compile_error', self.on_java_compile_error)
 
         return self._gradle
 
@@ -72,10 +74,16 @@ class SublAndroid(sublime_plugin.WindowCommand):
 
     def on_gradle_end(self):
         sublime.error_message('OMG! Gradle is dead!')
+        self._gradle.off('failed', self.on_gradle_failed)
         self._gradle = None
 
     def on_gradle_failed(self):
         self._gradle.off('end', self.on_gradle_end)
+
+    def on_java_compile_error(self, evt, failures):
+        sublime.message_dialog(str(len(failures)))
+        for failure in failures:
+            util.show_java_failure(failure, self.window)
 
     @ifgradle
     def on_saved(self, view):

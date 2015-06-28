@@ -14,10 +14,18 @@ daemon_command = os.path.join(os.path.dirname(__file__), '../daemon/bin/sublandr
 def port():
     return 12345
 
-_NL = ord('\n')
+LF = ord('\n')
 
-_ATTEMPT_DELAY = 250
-_MAX_ATTEMPTS = 10
+ATTEMPT_DELAY = 500
+MAX_ATTEMPTS = 20
+
+
+def onlysuccess(method):
+    def _method(self, error, message):
+        if not error:
+            return method(self, message)
+
+    return _method
 
 
 class Daemon(Emitter):
@@ -27,7 +35,7 @@ class Daemon(Emitter):
         self.popen = Popen([daemon_command, project_path, str(self.port), 'debug'])
         self.attempts = 0
         self._off = False
-        sublime.set_timeout_async(self.try_connect, _ATTEMPT_DELAY)
+        sublime.set_timeout_async(self.try_connect, ATTEMPT_DELAY)
 
     def shutdown(self):
         self._off = True
@@ -45,8 +53,8 @@ class Daemon(Emitter):
             try:
                 self._connect()
             except ConnectionRefusedError:
-                if self.attempts <= _MAX_ATTEMPTS:
-                    sublime.set_timeout_async(self.try_connect, _ATTEMPT_DELAY)
+                if self.attempts <= MAX_ATTEMPTS:
+                    sublime.set_timeout_async(self.try_connect, ATTEMPT_DELAY)
                 else:
                     self.fire('start_failed')
         else:
@@ -70,9 +78,9 @@ class Daemon(Emitter):
 
             data = b''
             while True:
-                chunk = self.socket.recv(1024)
+                chunk = self.socket.recv(4096)
                 if chunk:
-                    if chunk[-1] == _NL:
+                    if chunk[-1] == LF:
                         data += chunk[:-1]
                         break
                     else:
@@ -96,7 +104,7 @@ class Daemon(Emitter):
                 callback(message)
 
         elif self.socket is None:
-            sublime.set_timeout_async(partial(self._send, message, callback), _ATTEMPT_DELAY)
+            sublime.set_timeout_async(partial(self._send, message, callback), ATTEMPT_DELAY)
 
     def wait(self):
         self.popen.wait()

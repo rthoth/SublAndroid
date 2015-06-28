@@ -3,7 +3,9 @@
 	"iterations": 1,
 	"mods_load_order":
 	[
+		"lib/util.py",
 		"lib/project.py",
+		"lib/java.py",
 		"lib/gradle_view.py",
 		"lib/gradle.py",
 		"lib/emitter.py",
