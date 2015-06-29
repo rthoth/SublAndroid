@@ -1,11 +1,11 @@
 import sublime_plugin
 import sublime
-from .lib import util
 
 from os.path import join, realpath, relpath
 
 from .lib.gradle import Gradle
 from .lib.project import has_project, search_project_folders
+from .lib.highlight import Highlighter
 
 
 def ifgradle(func):
@@ -41,6 +41,8 @@ class SublAndroid(sublime_plugin.WindowCommand):
             "stop": self.shutdown
         }
 
+        self.highlighter = Highlighter(self.window)
+
     def shutdown(self):
         if self._gradle:
             self._gradle.off('end', self.on_gradle_end)
@@ -72,18 +74,17 @@ class SublAndroid(sublime_plugin.WindowCommand):
     def resolve_path(self, path=None):
         return join(self.folder, path) if path is not None else self.folder
 
-    def on_gradle_end(self):
+    def on_gradle_end(self, evt):
         sublime.error_message('OMG! Gradle is dead!')
         self._gradle.off('failed', self.on_gradle_failed)
         self._gradle = None
 
-    def on_gradle_failed(self):
+    def on_gradle_failed(self, evt):
         self._gradle.off('end', self.on_gradle_end)
 
-    def on_java_compile_error(self, evt, failures):
-        sublime.message_dialog(str(len(failures)))
-        for failure in failures:
-            util.show_java_failure(failure, self.window)
+    def on_java_compile_error(self, evt, highlights):
+        self.highlighter.remove_source('java')
+        self.highlighter.add_highlights(highlights, True)
 
     @ifgradle
     def on_saved(self, view):

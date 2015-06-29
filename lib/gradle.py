@@ -44,12 +44,12 @@ class Gradle(Emitter):
             if path.endswith(JAVA_EXTENSION):
                 self.java.saved(path)
 
-    def on_daemon_end(self):
+    def on_daemon_end(self, evt):
         self._daemon.off('end', self.on_daemon_end)
         self._daemon = None
         self.fire('end')
 
-    def on_daemon_failed(self):
+    def on_daemon_failed(self, evt):
         self._daemon.off('end', self.on_daemon_end)
         self._daemon.off('start_failed', self.on_daemon_failed)
         self._daemon = None

@@ -1,5 +1,11 @@
 from .emitter import Emitter
 from .daemon import onlysuccess
+from .highlight import Highlight
+
+
+class JavaHighlight(Highlight):
+    def __init__(self, *args):
+        super(JavaHighlight, self).__init__('java', *args)
 
 
 class Java(Emitter):
@@ -13,17 +19,11 @@ class Java(Emitter):
     @onlysuccess
     def on_java_compiled(self, java_result):
         if 'failures' in java_result:
-            java_failures = [JavaFailure(failure['fileName'], failure['lineNumber'],
-                             failure['kind'], failure['what'], failure['how'])
-                             for failure in java_result['failures']]
+            highlights = [JavaHighlight(failure['fileName'], failure['lineNumber'],
+                          failure['kind'], failure['what'], failure['how'])
+                          for failure in java_result['failures']]
 
-            self.gradle.fire('java_compile_error', java_failures)
+            info = ['%s:%d %s(%s, %s)' % (h.file, h.line, h.kind, h.what, h.how) for h in highlights]
+            self.gradle.gradle_view.info('\n'.join(info))
 
-
-class JavaFailure(object):
-    def __init__(self, file, line, kind, what, how):
-        self.file = file
-        self.line = line
-        self.kind = kind
-        self.what = what
-        self.how = how
+            self.gradle.fire('java_compile_error', highlights)
