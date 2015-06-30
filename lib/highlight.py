@@ -32,7 +32,7 @@ class Highlighter(object):
             self.update()
 
     def remove_source(self, source, update=False):
-        for file, highlights in self.highlights.items():
+        # for file, highlights in self.highlights.items():
             
 
 
