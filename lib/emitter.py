@@ -26,7 +26,7 @@ class Emitter(object):
     def fire(self, evt, *args):
         if self.listeners is not None and evt in self.listeners:
             listeners = self.listeners.copy()
-            for listener in listeners[evt].copy():
+            for listener in listeners[evt][:]:
                 if listener.once:
                     self.off(evt, listener)
                 listener.func(evt, *args)
