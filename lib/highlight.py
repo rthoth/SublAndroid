@@ -1,7 +1,10 @@
+import sublime
+
+
 class Highlight(object):
-    def __init__(self, source, file, line, kind, what, how):
+    def __init__(self, source, filename, line, kind, what, how):
         self.source = source
-        self.file = file
+        self.filename = filename
         self.line = line
         self.kind = kind
         self.what = what
@@ -14,12 +17,12 @@ class Highlighter(object):
         self.highlights = {}
 
     def add_highlight(self, highlight):
-        file = highlight.file
+        filename = highlight.filename
 
-        if file not in self.highlights:
-            self.highlights[file] = []
+        if filename not in self.highlights:
+            self.highlights[filename] = []
 
-        self.highlights[file].append(highlight)
+        self.highlights[filename].append(highlight)
 
     def add_highlights(self, highlights, update=False):
         for highlight in highlights:
@@ -28,8 +31,16 @@ class Highlighter(object):
         if update:
             self.update()
 
+    def create_region(self, highlight, view):
+        line = view.line(view.text_point(highlight.line - 1, 0))
+        region = view.find(highlight.how, line.begin(), sublime.LITERAL)
+        if region is not None:
+            return sublime.Region(region.begin(), line.end())
+        else:
+            line
+
     def remove_source(self, source, update=False):
-        for file, highlights in self.highlights.items():
+        for filename, highlights in self.highlights.items():
             for index, highlight in list(enumerate(highlights))[::-1]:
                 if highlight.source == source:
                     del highlights[index]
@@ -39,10 +50,10 @@ class Highlighter(object):
 
     def update(self):
         for view in self.window.views():
-            file = view.file_name()
-            if file and file in self.highlights:
-                self.update_view(view, self.highlights[file])
+            filename = view.file_name()
+            if filename and filename in self.highlights:
+                self.update_view(view, self.highlights[filename])
 
     def update_view(self, view, highlights):
-        for highlight in highlights:
-            pass
+        regions = [self.create_region(highlight, view) for highlight in highlights]
+        view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
