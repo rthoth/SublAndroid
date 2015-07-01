@@ -22,8 +22,7 @@ class Java(Emitter):
             highlights = [JavaHighlight(failure['fileName'], failure['lineNumber'],
                           failure['kind'], failure['what'], failure['how'])
                           for failure in java_result['failures']]
+        else:
+            highlights = []
 
-            info = ['%s:%d %s(%s, %s)' % (h.file, h.line, h.kind, h.what, h.how) for h in highlights]
-            self.gradle.gradle_view.info('\n'.join(info))
-
-            self.gradle.fire('java_compile_error', highlights)
+        self.gradle.fire('java_compile_error', highlights)

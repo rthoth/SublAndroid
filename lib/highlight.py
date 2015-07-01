@@ -1,6 +1,3 @@
-import sublime
-
-
 class Highlight(object):
     def __init__(self, source, file, line, kind, what, how):
         self.source = source
@@ -32,9 +29,10 @@ class Highlighter(object):
             self.update()
 
     def remove_source(self, source, update=False):
-        # for file, highlights in self.highlights.items():
-            
-
+        for file, highlights in self.highlights.items():
+            for index, highlight in list(enumerate(highlights))[::-1]:
+                if highlight.source == source:
+                    del highlights[index]
 
         if update:
             self.update()
@@ -46,6 +44,5 @@ class Highlighter(object):
                 self.update_view(view, self.highlights[file])
 
     def update_view(self, view, highlights):
-        sublime.message_dialog(str(len(highlights)))
         for highlight in highlights:
             pass
