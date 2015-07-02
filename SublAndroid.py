@@ -6,6 +6,7 @@ from os.path import join, realpath, relpath
 from .lib.gradle import Gradle
 from .lib.project import has_project, search_project_folders
 from .lib.highlight import Highlighter
+from .lib.ipwindow import IPWindow
 
 
 def ifgradle(func):
@@ -15,18 +16,18 @@ def ifgradle(func):
     return method
 
 
-class SublAndroid(sublime_plugin.WindowCommand):
+class SublAndroid(sublime_plugin.WindowCommand, IPWindow):
 
-    instances = {}
+    # instances = {}
 
-    @classmethod
-    def instance(cls, window, instance=None):
-        id = str(window.id())
-        current_instance = cls.instances[id] if id in cls.instances else None
-        if instance is not None:
-            cls.instances[id] = instance
+    # @classmethod
+    # def instance(cls, window, instance=None):
+    #     id = str(window.id())
+    #     current_instance = cls.instances[id] if id in cls.instances else None
+    #     if instance is not None:
+    #         cls.instances[id] = instance
 
-        return current_instance
+    #     return current_instance
 
     def __init__(self, *args):
         super(SublAndroid, self).__init__(*args)

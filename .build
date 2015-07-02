@@ -5,6 +5,7 @@
 	[
 		"lib/project.py",
 		"lib/java.py",
+		"lib/ipwindow.py",
 		"lib/highlight.py",
 		"lib/gradle_view.py",
 		"lib/gradle.py",

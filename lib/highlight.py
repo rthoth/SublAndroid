@@ -1,4 +1,7 @@
 import sublime
+import sublime_plugin
+
+from .ipwindow import IPWindow
 
 
 class Highlight(object):
@@ -11,10 +14,14 @@ class Highlight(object):
         self.how = how
 
 
-class Highlighter(object):
+DEFAULT_KINDS = ['warn', 'error', 'info']
+
+
+class Highlighter(IPWindow):
     def __init__(self, window):
         self.window = window
         self.highlights = {}
+        self.instance(window, self)
 
     def add_highlight(self, highlight):
         filename = highlight.filename
@@ -43,7 +50,7 @@ class Highlighter(object):
         return sublime.DRAW_NO_FILL
 
     def icon(self, source, kind):
-        return 'dot'
+        return 'bookmark'
 
     def remove_highlights(self, source):
         for filename, highlights in self.highlights.items():
@@ -52,18 +59,22 @@ class Highlighter(object):
                     del highlights[index]
 
         for view in self.window.views():
-            view.erase_regions('sublandroid-%s' % source)
+            for kind in DEFAULT_KINDS:
+                view.erase_regions('sublandroid-%s-%s' % (source, kind))
 
     def scope(self, source, kind):
         return 'string'
 
     def update(self):
         for view in self.window.views():
-            filename = view.file_name()
-            if filename and filename in self.highlights:
-                self.update_view(view, self.highlights[filename])
+            self.update_view(view)
 
-    def update_view(self, view, highlights):
+    def update_view(self, view):
+        filename = view.file_name()
+        if filename and filename in self.highlights:
+            self.add_highlights_on_view(view, self.highlights[filename])
+
+    def add_highlights_on_view(self, view, highlights):
         # regions = [self.create_region(highlight, view) for highlight in highlights]
         # view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
         sources = {}
@@ -80,6 +91,15 @@ class Highlighter(object):
         for source, kinds in sources.items():
             for kind, highlights in kinds.items():
                 regions = [self.create_region(highlight, view) for highlight in highlights]
-                view.add_regions('sublandroid-%s' % source,
+                view.add_regions('sublandroid-%s-%s' % (source, kind),
                                  regions, self.scope(source, kind),
                                  self.icon(source, kind), self.flag(source, kind))
+
+
+class HighlighListener(sublime_plugin.EventListener):
+
+    def on_load_async(self, view):
+        highlighter = Highlighter.instance(view.window())
+        sublime.message_dialog(str(highlighter))
+        if highlighter:
+            highlighter.update_view(view)
