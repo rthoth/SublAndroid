@@ -67,7 +67,7 @@ class SublAndroid(sublime_plugin.WindowCommand):
             self._gradle = Gradle(self.resolve_path, self.window)
             self._gradle.once('end', self.on_gradle_end)
             self._gradle.once('failed', self.on_gradle_failed)
-            self._gradle.on('java_compile_error', self.on_java_compile_error)
+            self._gradle.on('java_highlights', self.on_java_highlights)
 
         return self._gradle
 
@@ -82,8 +82,8 @@ class SublAndroid(sublime_plugin.WindowCommand):
     def on_gradle_failed(self, evt):
         self._gradle.off('end', self.on_gradle_end)
 
-    def on_java_compile_error(self, evt, highlights):
-        self.highlighter.remove_source('java')
+    def on_java_highlights(self, evt, highlights):
+        self.highlighter.remove_highlights('java')
         self.highlighter.add_highlights(highlights, True)
 
     @ifgradle

@@ -17,12 +17,12 @@ class Java(Emitter):
         self.daemon.send({'command': 'compileJava'}, self.on_java_compiled)
 
     @onlysuccess
-    def on_java_compiled(self, java_result):
-        if 'failures' in java_result:
+    def on_java_compiled(self, result):
+        if 'failures' in result:
             highlights = [JavaHighlight(failure['fileName'], failure['lineNumber'],
                           failure['kind'], failure['what'], failure['how'])
-                          for failure in java_result['failures']]
+                          for failure in result['failures']]
         else:
             highlights = []
 
-        self.gradle.fire('java_compile_error', highlights)
+        self.gradle.fire('java_highlights', highlights)

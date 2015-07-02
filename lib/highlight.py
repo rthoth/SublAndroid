@@ -39,14 +39,23 @@ class Highlighter(object):
         else:
             line
 
-    def remove_source(self, source, update=False):
+    def flag(self, source, kind):
+        return sublime.DRAW_NO_FILL
+
+    def icon(self, source, kind):
+        return 'dot'
+
+    def remove_highlights(self, source):
         for filename, highlights in self.highlights.items():
             for index, highlight in list(enumerate(highlights))[::-1]:
                 if highlight.source == source:
                     del highlights[index]
 
-        if update:
-            self.update()
+        for view in self.window.views():
+            view.erase_regions('sublandroid-%s' % source)
+
+    def scope(self, source, kind):
+        return 'string'
 
     def update(self):
         for view in self.window.views():
@@ -55,5 +64,22 @@ class Highlighter(object):
                 self.update_view(view, self.highlights[filename])
 
     def update_view(self, view, highlights):
-        regions = [self.create_region(highlight, view) for highlight in highlights]
-        view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
+        # regions = [self.create_region(highlight, view) for highlight in highlights]
+        # view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
+        sources = {}
+        for highlight in highlights:
+            if highlight.source not in sources:
+                sources[highlight.source] = {}
+
+            kinds = sources[highlight.source]
+            if highlight.kind not in kinds:
+                kinds[highlight.kind] = []
+
+            kinds[highlight.kind].append(highlight)
+
+        for source, kinds in sources.items():
+            for kind, highlights in kinds.items():
+                regions = [self.create_region(highlight, view) for highlight in highlights]
+                view.add_regions('sublandroid-%s' % source,
+                                 regions, self.scope(source, kind),
+                                 self.icon(source, kind), self.flag(source, kind))
