@@ -38,6 +38,27 @@ class Highlighter(IPWindow):
         if update:
             self.update()
 
+    def add_highlights_on_view(self, view, highlights):
+        # regions = [self.create_region(highlight, view) for highlight in highlights]
+        # view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
+        sources = {}
+        for highlight in highlights:
+            if highlight.source not in sources:
+                sources[highlight.source] = {}
+
+            kinds = sources[highlight.source]
+            if highlight.kind not in kinds:
+                kinds[highlight.kind] = []
+
+            kinds[highlight.kind].append(highlight)
+
+        for source, kinds in sources.items():
+            for kind, highlights in kinds.items():
+                regions = [self.create_region(highlight, view) for highlight in highlights]
+                view.add_regions('sublandroid-%s-%s' % (source, kind),
+                                 regions, self.scope(source, kind),
+                                 self.icon(source, kind), self.flag(source, kind))
+
     def create_region(self, highlight, view):
         line = view.line(view.text_point(highlight.line - 1, 0))
         region = view.find(highlight.how, line.begin(), sublime.LITERAL)
@@ -65,6 +86,24 @@ class Highlighter(IPWindow):
     def scope(self, source, kind):
         return 'string'
 
+    def status(self, view):
+        filename = view.file_name()
+        if filename and filename in self.highlights:
+            status = None
+            selection = view.sel()
+            if selection:
+                point = selection[0].end()
+                line = view.rowcol(point)[0] + 1
+                status = [highlight.what for highlight
+                          in self.highlights[filename] if highlight.line == line]
+                if status:
+                    status = ', '.join(status)
+
+            if status:
+                view.set_status('sublandroid', status)
+            else:
+                view.erase_status('sublandroid')
+
     def update(self):
         for view in self.window.views():
             self.update_view(view)
@@ -74,32 +113,15 @@ class Highlighter(IPWindow):
         if filename and filename in self.highlights:
             self.add_highlights_on_view(view, self.highlights[filename])
 
-    def add_highlights_on_view(self, view, highlights):
-        # regions = [self.create_region(highlight, view) for highlight in highlights]
-        # view.add_regions('sublandroid', regions, 'constant.numeric', 'circle', sublime.DRAW_NO_OUTLINE)
-        sources = {}
-        for highlight in highlights:
-            if highlight.source not in sources:
-                sources[highlight.source] = {}
-
-            kinds = sources[highlight.source]
-            if highlight.kind not in kinds:
-                kinds[highlight.kind] = []
-
-            kinds[highlight.kind].append(highlight)
-
-        for source, kinds in sources.items():
-            for kind, highlights in kinds.items():
-                regions = [self.create_region(highlight, view) for highlight in highlights]
-                view.add_regions('sublandroid-%s-%s' % (source, kind),
-                                 regions, self.scope(source, kind),
-                                 self.icon(source, kind), self.flag(source, kind))
-
 
 class HighlighListener(sublime_plugin.EventListener):
 
     def on_load_async(self, view):
         highlighter = Highlighter.instance(view.window())
-        sublime.message_dialog(str(highlighter))
         if highlighter:
             highlighter.update_view(view)
+
+    def on_selection_modified_async(self, view):
+        highlighter = Highlighter.instance(view.window())
+        if highlighter:
+            highlighter.status(view)
